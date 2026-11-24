@@ -3,9 +3,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import PageHeader from "@/components/PageHeader";
 import Placeholder from "@/components/Placeholder";
+import { listEntriesForCampaign } from "@/lib/calendar";
+import { dateOf } from "@/lib/campaign-schedule";
 import { getCampaign } from "@/lib/campaigns";
 import { formatDate } from "@/lib/format";
+import type { CalendarEntry } from "@/lib/types";
 import StatusBadge from "../StatusBadge";
+import ScheduleControls from "./ScheduleControls";
 
 export default function CampaignDetailPage({ params }: PageProps<"/campaigns/[id]">) {
   return (
@@ -23,7 +27,7 @@ export default function CampaignDetailPage({ params }: PageProps<"/campaigns/[id
 }
 
 async function CampaignDetail({ id }: { id: string }) {
-  const campaign = await getCampaign(id);
+  const [campaign, entries] = await Promise.all([getCampaign(id), listEntriesForCampaign(id)]);
   if (!campaign) notFound();
 
   const hasEmail = Boolean(campaign.subject || campaign.body);
@@ -31,12 +35,20 @@ async function CampaignDetail({ id }: { id: string }) {
   return (
     <>
       <PageHeader title={campaign.name}>
-        <Link
-          href={`/campaigns/${campaign.id}/edit`}
-          className="rounded border border-gray-300 px-4 py-2 text-sm font-medium hover:bg-gray-100"
-        >
-          {hasEmail ? "Edit" : "Write email"}
-        </Link>
+        <div className="flex items-start gap-2">
+          <Link
+            href={`/campaigns/${campaign.id}/edit`}
+            className="rounded border border-gray-300 px-4 py-2 text-sm font-medium hover:bg-gray-100"
+          >
+            {hasEmail ? "Edit" : "Write email"}
+          </Link>
+          <ScheduleControls
+            campaignId={campaign.id}
+            status={campaign.status}
+            scheduledDate={campaign.scheduled_at ? dateOf(campaign.scheduled_at) : null}
+            hasEmail={Boolean(campaign.subject && campaign.body)}
+          />
+        </div>
       </PageHeader>
 
       <div className="flex max-w-3xl flex-col gap-8">
@@ -87,8 +99,40 @@ async function CampaignDetail({ id }: { id: string }) {
             </Placeholder>
           )}
         </Section>
+
+        <Section title="On the calendar">
+          <CalendarEntries entries={entries} />
+        </Section>
       </div>
     </>
+  );
+}
+
+const CHANNEL_LABELS = { email: "Email", social: "Social", sms: "SMS" } as const;
+const ENTRY_STATUS_LABELS = { scheduled: "Scheduled", sent: "Sent", cancelled: "Cancelled" } as const;
+
+function CalendarEntries({ entries }: { entries: CalendarEntry[] }) {
+  if (entries.length === 0) {
+    return <Empty>Not on the calendar. Schedule the campaign to add its email.</Empty>;
+  }
+  return (
+    <ul className="divide-y divide-gray-200 rounded border border-gray-200">
+      {entries.map((entry) => (
+        <li key={entry.id}>
+          <Link
+            href={`/calendar?month=${entry.scheduled_date.slice(0, 7)}`}
+            className={`flex items-center justify-between gap-4 px-4 py-2 text-sm hover:bg-gray-50 ${
+              entry.status === "cancelled" ? "text-gray-400 line-through" : ""
+            }`}
+          >
+            <span>
+              {formatDate(entry.scheduled_date)} · {CHANNEL_LABELS[entry.channel]}
+            </span>
+            <span className="text-gray-500">{ENTRY_STATUS_LABELS[entry.status]}</span>
+          </Link>
+        </li>
+      ))}
+    </ul>
   );
 }
 

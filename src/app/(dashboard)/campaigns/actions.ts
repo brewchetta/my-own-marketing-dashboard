@@ -3,6 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getBrandKit } from "@/lib/brand-kits";
+import {
+  markCampaignSent,
+  scheduleCampaign,
+  unscheduleCampaign,
+} from "@/lib/campaign-schedule";
+import { getCampaign } from "@/lib/campaigns";
 import { generateEmail, type GeneratedEmail } from "@/lib/email-writer";
 import { getSupabase } from "@/lib/supabase/server";
 
@@ -144,4 +150,81 @@ export async function writeEmail(input: {
     console.error("writeEmail failed:", error);
     return { error: "Couldn't write the email. Check the server logs for details." };
   }
+}
+
+// ---------------------------------------------------------------------------
+// Status changes. Each one updates the campaign and its email calendar entry
+// together (see src/lib/campaign-schedule.ts).
+
+export type ScheduleState = { error?: string };
+
+const DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+// Status changes show up on the campaign, the lists, and the calendar.
+function revalidateSchedule(id: string, brandKitId: string | null) {
+  revalidatePath("/campaigns");
+  revalidatePath(`/campaigns/${id}`);
+  revalidatePath("/calendar");
+  if (brandKitId) revalidatePath(`/brand-kit/${brandKitId}`);
+}
+
+// Bound to a campaign id: scheduleCampaignAction.bind(null, id).
+export async function scheduleCampaignAction(
+  id: string,
+  _prev: ScheduleState,
+  formData: FormData,
+): Promise<ScheduleState> {
+  // TODO: check the logged-in user here once auth is implemented.
+  const date = text(formData, "date");
+  if (!DATE.test(date) || Number.isNaN(Date.parse(date))) {
+    return { error: "Pick a send date." };
+  }
+  // Allow "today" in any timezone: reject only dates before yesterday (UTC).
+  const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
+  if (date < yesterday) return { error: "Pick a date that hasn't passed yet." };
+
+  try {
+    const campaign = await getCampaign(id);
+    if (!campaign) return { error: "This campaign no longer exists." };
+    if (campaign.status === "sent") return { error: "This campaign has already been sent." };
+    if (!campaign.subject || !campaign.body) {
+      return { error: "Write the subject and body before scheduling the email." };
+    }
+    await scheduleCampaign(campaign, date);
+    revalidateSchedule(id, campaign.brand_kit_id);
+  } catch (error) {
+    console.error("scheduleCampaignAction failed:", error);
+    return { error: "Couldn't schedule the campaign. Please try again." };
+  }
+  return {};
+}
+
+export async function unscheduleCampaignAction(id: string): Promise<ScheduleState> {
+  // TODO: check the logged-in user here once auth is implemented.
+  try {
+    const campaign = await getCampaign(id);
+    if (!campaign) return { error: "This campaign no longer exists." };
+    if (campaign.status !== "scheduled") return { error: "This campaign isn't scheduled." };
+    await unscheduleCampaign(campaign);
+    revalidateSchedule(id, campaign.brand_kit_id);
+  } catch (error) {
+    console.error("unscheduleCampaignAction failed:", error);
+    return { error: "Couldn't unschedule the campaign. Please try again." };
+  }
+  return {};
+}
+
+export async function markSentAction(id: string): Promise<ScheduleState> {
+  // TODO: check the logged-in user here once auth is implemented.
+  try {
+    const campaign = await getCampaign(id);
+    if (!campaign) return { error: "This campaign no longer exists." };
+    if (campaign.status !== "scheduled") return { error: "Only a scheduled campaign can be marked as sent." };
+    await markCampaignSent(campaign);
+    revalidateSchedule(id, campaign.brand_kit_id);
+  } catch (error) {
+    console.error("markSentAction failed:", error);
+    return { error: "Couldn't mark the campaign as sent. Please try again." };
+  }
+  return {};
 }
