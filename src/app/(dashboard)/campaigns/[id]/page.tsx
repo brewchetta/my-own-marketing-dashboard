@@ -3,11 +3,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import PageHeader from "@/components/PageHeader";
 import Placeholder from "@/components/Placeholder";
+import { listAssetsForCampaign } from "@/lib/assets";
 import { listEntriesForCampaign } from "@/lib/calendar";
 import { dateOf } from "@/lib/campaign-schedule";
 import { getCampaign } from "@/lib/campaigns";
 import { formatDate } from "@/lib/format";
-import type { CalendarEntry } from "@/lib/types";
+import type { Asset, CalendarEntry } from "@/lib/types";
 import StatusBadge from "../StatusBadge";
 import ScheduleControls from "./ScheduleControls";
 
@@ -27,7 +28,11 @@ export default function CampaignDetailPage({ params }: PageProps<"/campaigns/[id
 }
 
 async function CampaignDetail({ id }: { id: string }) {
-  const [campaign, entries] = await Promise.all([getCampaign(id), listEntriesForCampaign(id)]);
+  const [campaign, entries, images] = await Promise.all([
+    getCampaign(id),
+    listEntriesForCampaign(id),
+    listAssetsForCampaign(id, 5),
+  ]);
   if (!campaign) notFound();
 
   const hasEmail = Boolean(campaign.subject || campaign.body);
@@ -100,11 +105,59 @@ async function CampaignDetail({ id }: { id: string }) {
           )}
         </Section>
 
+        <Section title="Images">
+          <CampaignImages campaignId={campaign.id} assets={images.assets} total={images.total} />
+        </Section>
+
         <Section title="On the calendar">
           <CalendarEntries entries={entries} />
         </Section>
       </div>
     </>
+  );
+}
+
+function CampaignImages({
+  campaignId,
+  assets,
+  total,
+}: {
+  campaignId: string;
+  assets: Asset[];
+  total: number;
+}) {
+  const addLink = (
+    <Link href={`/assets?campaign=${campaignId}`} className="font-medium text-gray-900 underline">
+      Generate an image for this campaign
+    </Link>
+  );
+
+  if (assets.length === 0) {
+    return <Placeholder>No images yet. {addLink}</Placeholder>;
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <ul className="grid grid-cols-3 gap-3 sm:grid-cols-5">
+        {assets.map((asset) => (
+          <li key={asset.id}>
+            <a href={asset.image_url} target="_blank" rel="noreferrer" title={asset.prompt}>
+              {/* eslint-disable-next-line @next/next/no-img-element -- Supabase Storage URL; no next/image remote config yet */}
+              <img
+                src={asset.image_url}
+                alt={asset.prompt}
+                loading="lazy"
+                className="aspect-square w-full rounded border border-gray-200 object-cover"
+              />
+            </a>
+          </li>
+        ))}
+      </ul>
+      <p className="text-sm text-gray-600">
+        {total > assets.length ? `Showing the ${assets.length} newest of ${total} images. ` : ""}
+        {addLink}
+      </p>
+    </div>
   );
 }
 

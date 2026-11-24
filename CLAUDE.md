@@ -37,7 +37,8 @@ These jobs should connect to each other. For example, a campaign on the calendar
 - **Backend / data:** PostgreSQL hosted on Supabase
 - **Analytics source:** Google Analytics 4 Data API via a service account (`src/lib/google-analytics.ts`, using `google-auth-library`).
 - **AI text:** Anthropic API (`@anthropic-ai/sdk`, Claude Sonnet 5.5) for analytics insights (`src/lib/insights.ts`).
-- **Other third-party APIs** (image generation): to be added later. The user will say when and which ones. Don't add any before then.
+- **Image generation:** Gemini API (`@google/genai`, `gemini-3.1-flash-image`) in `src/lib/image-generator.ts`. Saved images go in the public Supabase Storage bucket `marketing-assets` (`src/lib/assets.ts`).
+- **Other third-party APIs:** the user will say when and which ones. Don't add any before then.
 
 ## Auth
 

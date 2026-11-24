@@ -63,3 +63,11 @@ export type CalendarEntry = {
   channel: CalendarChannel;
   status: CalendarEntryStatus;
 };
+
+export type Asset = {
+  id: string;
+  prompt: string;
+  image_url: string; // public URL in the "marketing-assets" storage bucket
+  campaign_id: string | null;
+  created_at: string;
+};

@@ -59,3 +59,16 @@ export async function listCampaignsForBrandKit(
   if (error) throw new Error(`Couldn't load campaigns: ${error.message}`);
   return data;
 }
+
+// Just ids and names, newest first, for "attach to campaign" pickers.
+export type CampaignOption = Pick<Campaign, "id" | "name">;
+
+export async function listCampaignOptions(): Promise<CampaignOption[]> {
+  const { data, error } = await getSupabase()
+    .from("campaigns")
+    .select("id, name")
+    .order("created_at", { ascending: false });
+
+  if (error) throw new Error(`Couldn't load campaigns: ${error.message}`);
+  return data;
+}
