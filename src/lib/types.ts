@@ -38,3 +38,28 @@ export type AnalyticsSnapshot = {
   metrics: AnalyticsMetrics;
   pulled_at: string;
 };
+
+export type CampaignStatus = "draft" | "scheduled" | "sent";
+
+export type Campaign = {
+  id: string;
+  name: string;
+  brief: string | null;
+  brand_kit_id: string | null;
+  subject: string | null; // written by Claude
+  body: string | null; // written by Claude
+  status: CampaignStatus;
+  scheduled_at: string | null; // required unless status is "draft"
+  created_at: string | null;
+};
+
+export type CalendarChannel = "email" | "social" | "sms";
+export type CalendarEntryStatus = "scheduled" | "sent" | "cancelled";
+
+export type CalendarEntry = {
+  id: string;
+  campaign_id: string;
+  scheduled_date: string; // "YYYY-MM-DD"
+  channel: CalendarChannel;
+  status: CalendarEntryStatus;
+};

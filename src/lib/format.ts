@@ -10,3 +10,15 @@ export function formatPeriod(period: string) {
     year: "numeric",
   })}`;
 }
+
+// "2026-12-01T14:00:00+00:00" → "Dec 1, 2026". Shown in UTC so the server and
+// browser agree on the day.
+export function formatDate(value: string | null) {
+  if (!value) return null;
+  return new Date(value).toLocaleDateString("en-US", {
+    timeZone: "UTC",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}

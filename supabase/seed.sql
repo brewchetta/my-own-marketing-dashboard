@@ -212,3 +212,129 @@ insert into public.insights (snapshot_id, summary, created_at) values
   }',
   '2026-11-02 09:05:00+00'
 );
+
+-- ---------------------------------------------------------------------------
+-- Campaigns. "Today" in this seed is 2026-11-24, the week of Thanksgiving.
+-- Ties into the analytics story: "Holiday Sale Kickoff" is the email that
+-- caused the Nov 9–15 spike (it drove traffic to /holiday-sale).
+-- Mix on purpose:
+--   * sent campaigns with subject + body (past)
+--   * scheduled campaigns with subject + body (upcoming)
+--   * drafts with only a brief, so Claude has something to write
+--   * one draft with a planned date, one with no date at all
+-- Times are UTC.
+
+insert into public.campaigns (name, brief, brand_kit_id, subject, body, status, scheduled_at, created_at) values
+(
+  'Autumn Gravy Lookbook',
+  'Show off the fall gravy boat collection. Soft sell, mostly photos. Link to the collection page.',
+  (select id from public.brand_kits where name = 'Gravy Boat Co.'),
+  'Esteemed diner, the autumn collection has arrived',
+  E'Esteemed diner,\n\nThe leaves have turned, and so, with great ceremony, has our autumn collection. Six vessels of distinction, each worthy of the sauce of kings.\n\nWe invite you to view them at your leisure.\n\n[View the Autumn Collection]\n\nWith the utmost gravity,\nGravy Boat Co., purveyors since our 1887 patent',
+  'sent',
+  '2026-10-20 14:00:00+00',
+  '2026-10-14 16:20:00+00'
+),
+(
+  'Holiday Sale Kickoff',
+  'Announce the holiday sale: 25% off all gravy boats through Nov 30. Main goal is traffic to /holiday-sale.',
+  (select id from public.brand_kits where name = 'Gravy Boat Co.'),
+  'A most solemn announcement: 25% off the vessels of gravy',
+  E'Esteemed diner,\n\nIt is with considerable formality that we announce our Holiday Sale. From now until the thirtieth of November, every gravy boat in our catalogue is reduced by twenty-five percent.\n\nThe sauce of kings deserves a proper throne. Let this be the year your table is set correctly.\n\n[Attend the Holiday Sale]\n\nYour servant in all matters of gravy,\nGravy Boat Co.',
+  'sent',
+  '2026-11-10 14:00:00+00',
+  '2026-11-03 18:45:00+00'
+),
+(
+  'Thanksgiving Eve Reminder',
+  'Last-minute reminder the night before Thanksgiving. Sale ends Nov 30. Urgent but still formal.',
+  (select id from public.brand_kits where name = 'Gravy Boat Co.'),
+  'Esteemed diner, the gravy will not pour itself tomorrow',
+  E'Esteemed diner,\n\nTomorrow the nation gathers. The turkey has been arranged. The potatoes await. And yet, we must ask: has the gravy been given a vessel befitting its station?\n\nOur Holiday Sale continues through the thirtieth. Express delivery remains available, though we confess it is cutting things fine.\n\n[Secure a Gravy Boat]\n\nWith the deepest seriousness,\nGravy Boat Co.',
+  'scheduled',
+  '2026-11-25 15:00:00+00',
+  '2026-11-18 13:10:00+00'
+),
+(
+  'Leftovers Week',
+  'Week after Thanksgiving. Gravy on leftovers: recipes and reasons to keep the gravy boat out. Sale has 1 day left on Nov 30, mention it lightly.',
+  (select id from public.brand_kits where name = 'Gravy Boat Co.'),
+  'On the proper treatment of leftovers',
+  E'Esteemed diner,\n\nThe feast has concluded, but the gravy, rightly, endures. We present three distinguished uses for the sauce of kings in the days that follow: the turkey sandwich, the reheated stuffing, and, for the bold, the breakfast potato.\n\nOne final day of the Holiday Sale remains.\n\n[Read the Leftover Recipes]\n\nRespectfully,\nGravy Boat Co.',
+  'scheduled',
+  '2026-12-01 14:00:00+00',
+  '2026-11-20 10:30:00+00'
+),
+(
+  'Gift a Gravy Boat',
+  'Holiday gift guide. Position a gravy boat as the gift for the person who hosts every year. Include gift wrap option and Dec 18 shipping cutoff.',
+  (select id from public.brand_kits where name = 'Gravy Boat Co.'),
+  null,
+  null,
+  'draft',
+  '2026-12-08 14:00:00+00',
+  '2026-11-23 17:05:00+00'
+),
+(
+  'New Year''s Gravy Resolutions',
+  'Fun January email. Gravy-related resolutions for the new year. No sale, just brand-building.',
+  (select id from public.brand_kits where name = 'Gravy Boat Co.'),
+  null,
+  null,
+  'draft',
+  null,
+  '2026-11-24 09:15:00+00'
+),
+(
+  'Curated Singles Drop',
+  'New batch of single socks just dropped. Limited quantities. Lean into the chaos.',
+  (select id from public.brand_kits where name = 'Sock Goblin'),
+  'new singles just dropped heh heh',
+  E'hello, sock-haver.\n\nwe have acquired... a new batch. 140 singles. no pairs. never pairs.\n\nstripes. polka dots. one that might be a mitten. we are not sure. heh heh.\n\n[grab a single before it vanishes]\n\nmismatched forever,\nthe goblin',
+  'scheduled',
+  '2026-12-03 16:00:00+00',
+  '2026-11-21 22:40:00+00'
+),
+(
+  'Lost Sock Amnesty Day',
+  'Customers send us a photo of their lonely sock, we send them a curated single to match (not match). Launch idea, still rough.',
+  (select id from public.brand_kits where name = 'Sock Goblin'),
+  null,
+  null,
+  'draft',
+  null,
+  '2026-11-22 11:00:00+00'
+),
+(
+  'Winter Stillness',
+  'Gentle email for the shortest day of the year. Invite people to a 3-minute breathing session.',
+  (select id from public.brand_kits where name = 'Calm Pebble'),
+  null,
+  null,
+  'draft',
+  '2026-12-21 13:00:00+00',
+  '2026-11-19 08:00:00+00'
+);
+
+-- ---------------------------------------------------------------------------
+-- Calendar entries: when and where each campaign goes out.
+-- Past entries are sent; one social post was cancelled; drafts with a
+-- planned date show on the calendar so the marketer sees they still need
+-- writing. "New Year's Gravy Resolutions" and "Lost Sock Amnesty Day" have
+-- no date yet, so they're not on the calendar.
+
+insert into public.calendar_entries (campaign_id, scheduled_date, channel, status) values
+((select id from public.campaigns where name = 'Autumn Gravy Lookbook'),      '2026-10-20', 'email',  'sent'),
+((select id from public.campaigns where name = 'Autumn Gravy Lookbook'),      '2026-10-21', 'social', 'sent'),
+((select id from public.campaigns where name = 'Holiday Sale Kickoff'),       '2026-11-10', 'email',  'sent'),
+((select id from public.campaigns where name = 'Holiday Sale Kickoff'),       '2026-11-10', 'social', 'sent'),
+((select id from public.campaigns where name = 'Holiday Sale Kickoff'),       '2026-11-13', 'sms',    'sent'),
+((select id from public.campaigns where name = 'Thanksgiving Eve Reminder'),  '2026-11-25', 'email',  'scheduled'),
+((select id from public.campaigns where name = 'Thanksgiving Eve Reminder'),  '2026-11-25', 'social', 'cancelled'),
+((select id from public.campaigns where name = 'Thanksgiving Eve Reminder'),  '2026-11-26', 'sms',    'scheduled'),
+((select id from public.campaigns where name = 'Leftovers Week'),             '2026-12-01', 'email',  'scheduled'),
+((select id from public.campaigns where name = 'Leftovers Week'),             '2026-12-02', 'social', 'scheduled'),
+((select id from public.campaigns where name = 'Curated Singles Drop'),       '2026-12-03', 'email',  'scheduled'),
+((select id from public.campaigns where name = 'Curated Singles Drop'),       '2026-12-03', 'social', 'scheduled'),
+((select id from public.campaigns where name = 'Gift a Gravy Boat'),          '2026-12-08', 'email',  'scheduled'),
+((select id from public.campaigns where name = 'Winter Stillness'),           '2026-12-21', 'email',  'scheduled');

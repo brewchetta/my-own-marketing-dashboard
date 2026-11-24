@@ -4,6 +4,9 @@ import { notFound } from "next/navigation";
 import PageHeader from "@/components/PageHeader";
 import Placeholder from "@/components/Placeholder";
 import { brandKitToText, getBrandKit, lines } from "@/lib/brand-kits";
+import { listCampaignsForBrandKit } from "@/lib/campaigns";
+import { formatDate } from "@/lib/format";
+import StatusBadge from "../../campaigns/StatusBadge";
 import CopyBrandKit from "./CopyBrandKit";
 
 export default function BrandKitDetailPage({ params }: PageProps<"/brand-kit/[id]">) {
@@ -78,16 +81,48 @@ async function BrandKitDetail({ id }: { id: string }) {
         </div>
 
         <Section title="Campaigns">
-          {/* TODO: list campaigns where brand_kit_id = kit.id once the campaigns table exists. */}
-          <Placeholder>
-            No campaigns linked to this brand yet. Campaigns you create for {kit.name} will show
-            up here.
-          </Placeholder>
+          <Suspense fallback={<p className="text-sm text-gray-500">Loading campaigns…</p>}>
+            <BrandCampaigns brandKitId={kit.id} brandName={kit.name} />
+          </Suspense>
         </Section>
 
         <CopyBrandKit text={brandKitToText(kit)} />
       </div>
     </>
+  );
+}
+
+async function BrandCampaigns({ brandKitId, brandName }: { brandKitId: string; brandName: string }) {
+  const campaigns = await listCampaignsForBrandKit(brandKitId);
+
+  if (campaigns.length === 0) {
+    return (
+      <Placeholder>
+        No campaigns for {brandName} yet.{" "}
+        <Link href="/campaigns/new" className="font-medium text-gray-900 underline">
+          Create one
+        </Link>
+      </Placeholder>
+    );
+  }
+
+  return (
+    <ul className="divide-y divide-gray-200 rounded border border-gray-200">
+      {campaigns.map((c) => (
+        <li key={c.id}>
+          <Link
+            href={`/campaigns/${c.id}`}
+            className="flex items-center justify-between gap-4 px-4 py-2 text-sm hover:bg-gray-50"
+          >
+            <span className="font-medium">{c.name}</span>
+            <span className="flex items-center gap-3 text-gray-500">
+              {formatDate(c.scheduled_at)}
+              <StatusBadge status={c.status} />
+            </span>
+          </Link>
+        </li>
+      ))}
+    </ul>
   );
 }
 
