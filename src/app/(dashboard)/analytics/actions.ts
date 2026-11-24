@@ -1,7 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createSnapshot, hasSnapshotForPeriod, lastFullWeek } from "@/lib/analytics-snapshots";
+import {
+  createSnapshot,
+  hasSnapshotForPeriod,
+  lastFullWeek,
+  listSnapshots,
+} from "@/lib/analytics-snapshots";
+import { generateInsight, hasInsightForSnapshot, saveInsight } from "@/lib/insights";
 import { fetchGa4Metrics, isGoogleAnalyticsConfigured } from "@/lib/google-analytics";
 
 export type PullState = {
@@ -47,4 +53,34 @@ export async function pullLatestAnalytics(): Promise<PullState> {
 
   revalidatePath("/analytics");
   return { status: "saved", message: "Saved last week's numbers from Google Analytics." };
+}
+
+export type InsightState = {
+  error?: string;
+};
+
+// Generates and saves an insight for the latest snapshot, unless it already
+// has one. The page re-renders and shows the saved insight.
+export async function generateInsights(): Promise<InsightState> {
+  // TODO: check the logged-in user here once auth is implemented.
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return { error: "The Anthropic API isn't connected yet. Add ANTHROPIC_API_KEY to .env.local." };
+  }
+
+  try {
+    const snapshots = await listSnapshots();
+    const latest = snapshots[0];
+    if (!latest) return { error: "There are no analytics snapshots to analyze yet." };
+
+    if (!(await hasInsightForSnapshot(latest.id))) {
+      const content = await generateInsight(snapshots);
+      await saveInsight(latest.id, content);
+    }
+  } catch (error) {
+    console.error("generateInsights failed:", error);
+    return { error: "Couldn't generate insights. Check the server logs for details." };
+  }
+
+  revalidatePath("/analytics");
+  return {};
 }

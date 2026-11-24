@@ -3,6 +3,10 @@ import PageHeader from "@/components/PageHeader";
 import Placeholder from "@/components/Placeholder";
 import { listSnapshots } from "@/lib/analytics-snapshots";
 import type { AnalyticsMetrics, AnalyticsSnapshot } from "@/lib/types";
+import { formatPeriod } from "@/lib/format";
+import { listInsights, type Insight } from "@/lib/insights";
+import GenerateInsightButton from "./GenerateInsightButton";
+import InsightCard from "./InsightCard";
 import PullButton from "./PullButton";
 
 export default function AnalyticsPage() {
@@ -19,7 +23,7 @@ export default function AnalyticsPage() {
 }
 
 async function AnalyticsView() {
-  const snapshots = await listSnapshots();
+  const [snapshots, insights] = await Promise.all([listSnapshots(), listInsights()]);
 
   if (snapshots.length === 0) {
     return (
@@ -30,6 +34,9 @@ async function AnalyticsView() {
   }
 
   const [latest, previous] = snapshots;
+  // insights is newest first, so find() picks the most recent one for this week.
+  const latestInsight = insights.find((i) => i.snapshotId === latest.id);
+  const pastInsights = insights.filter((i) => i.snapshotId !== latest.id);
 
   return (
     <div className="flex max-w-5xl flex-col gap-10">
@@ -53,9 +60,20 @@ async function AnalyticsView() {
         <History snapshots={snapshots} />
       </Section>
 
-      <Section title="Insights">
-        {/* TODO: plain-English insights from the Anthropic API, stored in `insights`. */}
-        <Placeholder>No insights yet.</Placeholder>
+      <Section title={`Insight for ${formatPeriod(latest.period)}`}>
+        {latestInsight ? (
+          <InsightCard
+            period={latestInsight.period}
+            createdAt={latestInsight.createdAt}
+            content={latestInsight.content}
+          />
+        ) : (
+          <GenerateInsightButton />
+        )}
+      </Section>
+
+      <Section title="Past insights">
+        <PastInsights insights={pastInsights} />
       </Section>
     </div>
   );
@@ -240,6 +258,36 @@ function History({ snapshots }: { snapshots: AnalyticsSnapshot[] }) {
   );
 }
 
+// One row per past insight; click to expand. <details> needs no client JS.
+function PastInsights({ insights }: { insights: Insight[] }) {
+  if (insights.length === 0) return <Empty>No past insights yet.</Empty>;
+
+  return (
+    <ul className="flex flex-col gap-2">
+      {insights.map((insight) => (
+        <li key={insight.id}>
+          <details className="group rounded border border-gray-200">
+            <summary className="flex cursor-pointer items-center justify-between gap-4 px-4 py-3 text-sm hover:bg-gray-50">
+              <span className="font-medium">{formatPeriod(insight.period)}</span>
+              <span className="truncate text-gray-500">
+                {insight.content.whatChanged[0]?.detail ?? insight.content.hypothesis}
+              </span>
+              <span className="shrink-0 text-gray-400 group-open:rotate-90">›</span>
+            </summary>
+            <div className="border-t border-gray-200 p-3">
+              <InsightCard
+                period={insight.period}
+                createdAt={insight.createdAt}
+                content={insight.content}
+              />
+            </div>
+          </details>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Layout + formatting helpers
 
@@ -279,17 +327,4 @@ function formatDuration(seconds: number) {
   const s = Math.round(seconds);
   const m = Math.floor(s / 60);
   return m > 0 ? `${m}m ${s % 60}s` : `${s}s`;
-}
-
-// "2026-11-16/2026-11-22" → "Nov 16 – Nov 22, 2026"
-function formatPeriod(period: string) {
-  const [start, end] = period.split("/");
-  if (!start || !end) return period;
-  const fmt = (d: string, opts: Intl.DateTimeFormatOptions) =>
-    new Date(`${d}T00:00:00Z`).toLocaleDateString("en-US", { timeZone: "UTC", ...opts });
-  return `${fmt(start, { month: "short", day: "numeric" })} – ${fmt(end, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  })}`;
 }

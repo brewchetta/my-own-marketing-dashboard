@@ -167,3 +167,48 @@ insert into public.analytics_snapshots (period, metrics, pulled_at) values
   }'::jsonb,
   '2026-11-23 09:00:00+00'
 );
+
+-- ---------------------------------------------------------------------------
+-- Insights for two earlier weeks, so "Past insights" has something to show.
+-- The latest week (Nov 16–22) is left without one so you can generate it.
+-- Every number below comes from the snapshots above.
+
+insert into public.insights (snapshot_id, summary, created_at) values
+(
+  (select id from public.analytics_snapshots where period = '2026-11-09/2026-11-15'),
+  '{
+    "previousPeriod": "2026-11-02/2026-11-08",
+    "whatChanged": [
+      {"metric": "Visits", "detail": "Sessions rose from 4,450 to 6,230, up 40%."},
+      {"metric": "Email traffic", "detail": "Email sessions jumped from 450 to 1,910. That is 1,460 of the 1,780 extra sessions."},
+      {"metric": "Key events", "detail": "Key events rose from 112 to 188, up 68%."},
+      {"metric": "Engagement", "detail": "Engagement rate improved from 60% to 64%."}
+    ],
+    "hypothesis": "This is a hypothesis: an email campaign promoting the holiday sale drove most of the growth. Email sessions more than quadrupled, and /holiday-sale appeared in the top pages with 3,120 views. Other channels grew only slightly.",
+    "considerations": [
+      "Note what this email did differently (timing, subject, offer) so you can repeat it.",
+      "Watch next week to see how much of this lift holds once the campaign is over."
+    ],
+    "missingMetrics": []
+  }',
+  '2026-11-16 09:05:00+00'
+),
+(
+  (select id from public.analytics_snapshots where period = '2026-10-26/2026-11-01'),
+  '{
+    "previousPeriod": "2026-10-19/2026-10-25",
+    "whatChanged": [
+      {"metric": "Visits", "detail": "Sessions fell from 4,310 to 3,890, down 10%."},
+      {"metric": "Key events", "detail": "Key events fell from 104 to 82, down 21%."},
+      {"metric": "Engagement", "detail": "Engagement rate dropped from 59% to 55%."},
+      {"metric": "Organic Social", "detail": "Organic Social sessions fell from 660 to 540, down 18%, the biggest drop of any channel."}
+    ],
+    "hypothesis": "This is a hypothesis: a quieter week across the board rather than one broken channel. Every channel lost sessions (Organic Search 1,810 to 1,690, Direct 1,060 to 980, Email 430 to 360, Referral 350 to 320), which points to something seasonal or a lighter posting and sending schedule.",
+    "considerations": [
+      "Check whether you posted or emailed less than usual that week.",
+      "Key events fell faster than visits, so look at whether anything changed on your sign-up or checkout pages."
+    ],
+    "missingMetrics": []
+  }',
+  '2026-11-02 09:05:00+00'
+);

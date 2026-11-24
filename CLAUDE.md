@@ -36,7 +36,8 @@ These jobs should connect to each other. For example, a campaign on the calendar
 - **Frontend:** Next.js (App Router), TypeScript, Tailwind CSS
 - **Backend / data:** PostgreSQL hosted on Supabase
 - **Analytics source:** Google Analytics 4 Data API via a service account (`src/lib/google-analytics.ts`, using `google-auth-library`).
-- **Other third-party APIs** (AI text, image generation): to be added later. The user will say when and which ones. Don't add any before then.
+- **AI text:** Anthropic API (`@anthropic-ai/sdk`, Claude Sonnet 5.5) for analytics insights (`src/lib/insights.ts`).
+- **Other third-party APIs** (image generation): to be added later. The user will say when and which ones. Don't add any before then.
 
 ## Auth
 
