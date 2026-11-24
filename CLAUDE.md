@@ -35,7 +35,8 @@ These jobs should connect to each other. For example, a campaign on the calendar
 
 - **Frontend:** Next.js (App Router), TypeScript, Tailwind CSS
 - **Backend / data:** PostgreSQL hosted on Supabase
-- **Third-party APIs** (AI text, image generation, analytics sources): to be added later. The user will say when and which ones. Don't add any before then.
+- **Analytics source:** Google Analytics 4 Data API via a service account (`src/lib/google-analytics.ts`, using `google-auth-library`).
+- **Other third-party APIs** (AI text, image generation): to be added later. The user will say when and which ones. Don't add any before then.
 
 ## Auth
 
@@ -51,8 +52,8 @@ Build these tables **one at a time, only when asked**. Don't create migrations, 
 | `brand_kits` | name, voice, palette (JSON), dos, donts, created_at |
 | `campaigns` | name, brief, brand_kit_id → brand_kits, subject (AI-generated), body (AI-generated), status (`draft` / `scheduled` / `sent`), scheduled_at, created_at |
 | `assets` | prompt (used to generate the image/asset), image_url, campaign_id → campaigns, created_at |
-| `analytics_snapshot` | period, metrics (JSON), pulled_at |
-| `insights` | snapshot_id → analytics_snapshot, summary, created_at |
+| `analytics_snapshots` | period, metrics (JSON), pulled_at |
+| `insights` | snapshot_id → analytics_snapshots, summary, created_at |
 | `calendar_entries` | campaign_id → campaigns, scheduled_date, channel (`email` / `social` / `sms`), status (`scheduled` / `sent` / `cancelled`) |
 
 ## Project structure
